@@ -24,9 +24,6 @@ public class Server extends Thread {
         Socket player = server.accept();
         // Accept incoming client connections only if no client is currently connected
         if (!clientConnected) {
-          
-          // handle the client connection
-          System.out.println("waiting for player");
 
           // print out the socket information
           System.out.println("Player Connected at " + player);
@@ -46,23 +43,19 @@ public class Server extends Thread {
           PrintWrite.println(clientConnected);
 
           /*---------------------end Setting---------------------*/
-
-          // get the input name.
-          name = reader.readLine();
-          System.out.println("Player: " + name);
-
+          
           clientConnected = true;
           isRunning = true;
 
           while (isRunning) {
             // get the random word
             String word = getWord();
-            System.out.println("answer word: " + word);
+            System.out.println("player room " + host + " is playing with word: " + word);
 
             while (true) {
               // get the input word.
               String input = reader.readLine();
-              System.out.println("Player: " + input);
+              System.out.println("player room " + host + " input: " + input + "");
 
               // check the input word.
               if (input.equals(word)) {
