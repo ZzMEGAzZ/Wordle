@@ -1,109 +1,145 @@
+import java.awt.*;
+import javax.swing.*;
+import java.awt.event.*;
 import java.io.*;
 import java.net.*;
-import java.util.*;
-
-import javax.net.ssl.HostnameVerifier;
-import javax.swing.*;
-import java.awt.*;
-import java.awt.event.*;
 
 public class Game extends JFrame {
 
+    private static final int MAX_GUESSES = 5;
     private int host;
+    private String room;
 
+    final private int WIDTH = 700;
+    final private int HEIGHT = 850;
     private JTextField inputField;
-    private JTextArea messageArea;
     private JButton sendButton;
+    private JLabel[][] guessLabels;
+    Color yellow = new Color(231, 177, 10);
+    Color green = new Color(122, 168, 116);
+    Color grey = new Color(82, 74, 78);
 
-    public Game(int host) {
-        createGUI();
+    public Game(int host, String room) {
 
+        // Create frame
+        createGUI(room);
+
+        /*--------------------------Connect Server-----------------------------*/
         try {
+            // Connect to server
             Socket player = new Socket("localhost", host);
             System.out.println("Connected to server: " + player);
+
+            // Set timeout
             player.setSoTimeout(100);
 
+            // Create input and output streams
             OutputStream out = player.getOutputStream();
-            PrintWriter PrintWrite = new PrintWriter(out, true);
+            PrintWriter printWriter = new PrintWriter(out, true);
             InputStream in = player.getInputStream();
             BufferedReader reader = new BufferedReader(new InputStreamReader(in));
 
+            // Create guess labels
             if (Boolean.parseBoolean(reader.readLine())) {
                 setVisible(false);
             } else {
-                showMessage("-----------------------------------------Rules-----------------------------------------------");
-                showMessage("    -- guess the word in 5 letters then press enter or click send -- ");
-                showMessage("    - if return 'O' you guess the word correctly");
-                showMessage("    - if return 'X' you guess the word incorrectly");
-                showMessage("    - if return '*'' you guess the word correctly but not in the right order");
-                showMessage("    -- You can guess the word in 5 Times -- ");
-                showMessage("-----------------------------------------------------------------------------------------------");
-                showMessage("\n   ready to play");
+                inputField.addActionListener(new ActionListener() {
+                    int currentGuess = 0;
+
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        if (currentGuess >= MAX_GUESSES) {
+                            return;
+                        }
+
+                        // Get input
+                        String input = inputField.getText();
+                        if (input.length() == 5) {
+                            printWriter.println(input);
+
+                            try {
+                                // Get result
+                                String result = reader.readLine();
+                                for (int i = 0; i < input.length(); i++) {
+                                    guessLabels[currentGuess][i].setText(String.valueOf(input.charAt(i)));
+
+                                    // Set background color
+                                    if (result.charAt(i) == 'O') {
+                                        guessLabels[currentGuess][i].setBackground(green);
+                                    } else if (result.charAt(i) == 'X') {
+                                        guessLabels[currentGuess][i].setBackground(grey);
+                                    } else if (result.charAt(i) == '*') {
+                                        guessLabels[currentGuess][i].setBackground(yellow);
+                                    }
+                                }
+                                
+                                // Increase current guess
+                                currentGuess++;
+                                
+                                // Check if game is over
+                                boolean status = Boolean.parseBoolean(reader.readLine());
+                                if (!status) {
+                                    // Game over
+                                    showMessage("Server: " + reader.readLine());
+                                    // Ask if player wants to play again
+                                    int playAgain = JOptionPane.showConfirmDialog(null, "Play again?", "Confirm",
+                                            JOptionPane.YES_NO_OPTION);
+                                    if (playAgain == JOptionPane.YES_OPTION) {
+                                        printWriter.println(true);
+                                        currentGuess = 0;
+                                        resetGame();
+                                    } else {
+                                        printWriter.println(false);
+                                        currentGuess = 0;
+                                        resetGame();
+                                        player.close();
+                                        setVisible(false);
+                                    }
+                                }
+                            } catch (IOException ioException) {
+                                ioException.printStackTrace();
+                            }
+                        } else {
+                            showMessage("Please enter 5 letters");
+                        }
+                        inputField.setText("");
+                    }
+                });
             }
 
-            inputField.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    String input = inputField.getText();
-                    if (input.length() == 5) {
-                        PrintWrite.println(input);
-                        try {
-                            String result = reader.readLine();
-                            showMessage("    Your input is: " + input + " " + result);
-                            boolean status = Boolean.parseBoolean(reader.readLine());
-                            if (!status) {
-                                showMessage("    Server: " + reader.readLine());
-                                int playAgain = JOptionPane.showConfirmDialog(null, "Play again?", "Confirm", JOptionPane.YES_NO_OPTION);
-                                if (playAgain == JOptionPane.YES_OPTION) {
-                                    PrintWrite.println(true);
-                                } else {
-                                    PrintWrite.println(false);
-                                    player.close();
-                                    setVisible(false);
-                                }
-                            }
-                        } catch (IOException ioException) {
-                            ioException.printStackTrace();
-                        }
-                    } else {
-                        showMessage("    -- Please enter 5 letters --");
-                    }
-                    inputField.setText("");
-                }
-            });
-
-        } catch (SocketTimeoutException e) {
-            //alert user that connection timed out
-            JLabel label = new JLabel("Room is full");
-            label.setFont(new Font("Arial", Font.BOLD, 18));
-            JOptionPane.showMessageDialog(null, label, "Error", JOptionPane.ERROR_MESSAGE);
-
-            //close current JFrame
-            setVisible(false);
-            
-        } catch (IOException e) {
-            //alert user that connection failed
-            JLabel label = new JLabel("Connection failed");
-            label.setFont(new Font("Arial", Font.BOLD, 18));
-            JOptionPane.showMessageDialog(null, label, "Error", JOptionPane.ERROR_MESSAGE);
-
-            //close current JFrame
+        }
+        // Catch exceptions
+         catch (SocketTimeoutException e) {
+            showMessage("Room is full");
             setVisible(false);
 
         }
-    }
+        // Catch exceptions
+        catch (IOException e) {
+            showMessage("Connection failed");
+            setVisible(false);
 
-    private void createGUI() {
-        setTitle("Word Game");
-        setSize(400, 300);
+        }
+
+    }
+    /*--------------------------End of Connect Server-----------------------------*/
+
+    /*--------------------------Create GUI-----------------------------*/
+
+    private void createGUI(String room) {
+        // Create frame
+        setTitle("Wordle Game " + room);
+        setSize(WIDTH, HEIGHT);
+        setResizable(false);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout());
 
-        inputField = new JTextField(20);
-        messageArea = new JTextArea();
-        messageArea.setEditable(false);
+        // Create panels
+        Label inputTitle = new Label("Guess the word:");
+        inputTitle.setFont(new Font("Arial", Font.BOLD, 30));
+        inputField = new JTextField(10);
+        inputField.setFont(new Font("Arial", Font.BOLD, 30));
         sendButton = new JButton("Send");
-
         sendButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -111,26 +147,82 @@ public class Game extends JFrame {
             }
         });
 
+        // Create input Panels
         JPanel inputPanel = new JPanel();
+        inputPanel.add(inputTitle);
         inputPanel.add(inputField);
         inputPanel.add(sendButton);
 
-        add(new JScrollPane(messageArea), BorderLayout.CENTER);
+        // Create word Panels
+        JPanel wordPanel = new JPanel(new GridLayout(MAX_GUESSES, 5, 10, 10));
+        wordPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        wordPanel.setBackground(Color.BLACK);
+
+        // Create guess labels
+        guessLabels = new JLabel[MAX_GUESSES][5];
+
+        // Add guess labels to word panel
+        for (int row = 0; row < MAX_GUESSES; row++) {
+            for (int col = 0; col < 5; col++) {
+                guessLabels[row][col] = new JLabel(" ");
+                guessLabels[row][col].setHorizontalAlignment(JLabel.CENTER);
+                guessLabels[row][col].setOpaque(true);
+                guessLabels[row][col].setBackground(Color.BLACK);
+                guessLabels[row][col].setBorder(BorderFactory.createLineBorder(Color.WHITE, 2));
+                guessLabels[row][col].setFont(new Font("Arial", Font.BOLD, 30));
+                guessLabels[row][col].setForeground(Color.WHITE);
+                guessLabels[row][col].setPreferredSize(new Dimension(50, 50));
+                wordPanel.add(guessLabels[row][col]);
+            }
+        }
+
+        // Create title label with white text
+        JLabel titleLabel = new JLabel("Wordle Game");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 30));
+        titleLabel.setForeground(Color.WHITE);
+
+        // Create title panel with black border
+        JPanel titlePanel = new JPanel();
+        titlePanel.setBackground(Color.BLACK);
+        titlePanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        titlePanel.add(titleLabel);
+
+        // Add panels to main panel
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.add(titlePanel, BorderLayout.NORTH);
+        mainPanel.add(wordPanel, BorderLayout.CENTER);
+
+        // Add title label to title panel
+        add(mainPanel, BorderLayout.CENTER);
         add(inputPanel, BorderLayout.SOUTH);
 
+        // Set visible
         setVisible(true);
     }
 
+    // Show alert message
     private void showMessage(String message) {
-        messageArea.append(message + "\n");
+        JOptionPane.showMessageDialog(this, message);
+    }
+
+    // Reset game set to default
+    private void resetGame() {
+        for (int row = 0; row < MAX_GUESSES; row++) {
+            for (int col = 0; col < 5; col++) {
+                guessLabels[row][col].setText(" ");
+                guessLabels[row][col].setForeground(Color.WHITE);
+                guessLabels[row][col].setBackground(Color.BLACK);
+            }
+        }
     }
 
     public static void main(String[] args) {
         int host = Integer.parseInt(args[0]);
+        String room = args[1];
         SwingUtilities.invokeLater(new Runnable() {
             @Override
             public void run() {
-                new Game(host);
+                new Game(host, room);
             }
         });
     }

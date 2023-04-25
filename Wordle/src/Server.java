@@ -8,19 +8,18 @@ public class Server extends Thread {
   private boolean clientConnected = false;
 
   public void server(int host) {
-    // create a server socket. A server socket waits for requests to come in over
-    // the network.
+
     boolean isRunning = true;
     int round = 0;
-    String name = "";
 
     try {
-      /*-----------------------Setting-----------------------*/
+      /*----------------------- Setting -----------------------*/
       // create a socket to connect to the server
       ServerSocket server = new ServerSocket(host);
-      // create a socket to connect to the server
 
       while (true) {
+        
+        // create a socket to connect to the server
         Socket player = server.accept();
         // Accept incoming client connections only if no client is currently connected
         if (!clientConnected) {
@@ -42,11 +41,12 @@ public class Server extends Thread {
 
           PrintWrite.println(clientConnected);
 
-          /*---------------------end Setting---------------------*/
-          
           clientConnected = true;
           isRunning = true;
 
+          /*--------------------- end Setting ---------------------*/
+
+          /*--------------------- Game Server ---------------------*/
           while (isRunning) {
             // get the random word
             String word = getWord();
@@ -78,7 +78,6 @@ public class Server extends Thread {
             isRunning = Boolean.parseBoolean(reader.readLine());
           }
           System.out.println("Player disconnected");
-          name = "";
           clientConnected = false;
         } else {
           PrintWriter PrintWrite = new PrintWriter(player.getOutputStream(), true);
@@ -90,7 +89,10 @@ public class Server extends Thread {
       System.out.println(e);
     }
 
-  }
+  } 
+      /*--------------------- End Game Server ---------------------*/
+
+      /*--------------------- Random word ---------------------*/
 
   public String getWord() {
     List<String> word = new ArrayList<String>();
@@ -114,6 +116,10 @@ public class Server extends Thread {
     return randomWord;
   }
 
+  /*--------------------- End Random word ---------------------*/
+
+  /*--------------------- Check word ---------------------*/
+
   public String checkWord(String input, String word) {
     String result = "";
 
@@ -128,6 +134,10 @@ public class Server extends Thread {
     }
     return result;
   }
+
+  /*--------------------- End Check word ---------------------*/
+
+  /*--------------------- Thread ---------------------*/
 
   @Override
   public void run() {
@@ -151,6 +161,10 @@ public class Server extends Thread {
     }
   }
 
+  /*--------------------- End Thread ---------------------*/
+
+  /*--------------------- Main ---------------------*/
+
   public static void main(String[] args) {
     Thread t1 = new Thread(new Server());
     t1.setName("game1");
@@ -166,4 +180,6 @@ public class Server extends Thread {
     t3.start();
     t4.start();
   }
+
+  /*--------------------- End Main ---------------------*/
 }
