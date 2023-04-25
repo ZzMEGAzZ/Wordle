@@ -14,7 +14,7 @@
   1. Clone the repository to your local machine using Git:
   
   ```
-  git clone https://github.com/ZzMEGAzZ/wordle.git
+  git clone https://github.com/ZzMEGAzZ/Wordle.git
   ```
   
   2. Open the project in Eclipse or any other Java IDE.
